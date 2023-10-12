@@ -129,7 +129,7 @@ function ExamifyPage() {
                     </a>
                 </div>
             </div>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-8 p-4">
                 {sampleQuestions.map((question, index) => (
                     <div>
                         {question.type === "checkbox" && (

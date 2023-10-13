@@ -131,13 +131,13 @@ function ExamifyPage() {
             </div>
             <form onSubmit={handleSubmit} className="space-y-8 p-4">
                 {sampleQuestions.map((question, index) => (
-                    <div>
+                    <div key={index}>
                         {question.type === "checkbox" && (
                             <div>
                                 <label className="block font-medium text-lg text-gray-700 tracking-wider">{index + 1}. {question.question}:</label>
                                 <div className="">
                                     {question.choices.map((choise, i) => (
-                                        <div className="flex items-center p-2">
+                                        <div key={index} className="flex items-center p-2">
                                             <input
                                                 type="checkbox"
                                                 id={`checkboxOption${i + 1}`}
@@ -157,7 +157,7 @@ function ExamifyPage() {
                             <div>
                                 <label className={`block font-medium text-lg text-gray-700 tracking-wider ${question.isCorrect == true && 'text-green-600'} ${question.isCorrect == false && 'text-red-600'}`}>{index + 1}. {question.question}:</label>
                                 {question.choices.map((choise, i) => (
-                                    <div className={`p-2`}>
+                                    <div key={index} className={`p-2`}>
                                         <div className="flex items-center">
                                             <input
                                                 type="radio"

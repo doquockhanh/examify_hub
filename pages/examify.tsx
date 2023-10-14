@@ -4,7 +4,7 @@ import '../styles/tailwind.css';
 import Image from 'next/image';
 import Link from 'next/link';
 
-const sampleQuestions: { question: string; choices: string[]; selectedAnswer: string; correctAnswer: string; type: string; isCorrect?: boolean }[] = [
+const sampleQuestions: { question: string; choices: string[]; selectedAnswer: string; correctAnswer: string | string[]; type: string; isCorrect?: boolean }[] = [
     {
         question: "What is the capital of France?",
         choices: ["A) Paris", "B) London", "C) Berlin", "D) Madrid"],
@@ -89,7 +89,7 @@ function ExamifyPage() {
         question: string;
         choices: string[];
         selectedAnswer: string;
-        correctAnswer: string;
+        correctAnswer: string | string [];
         type: string;
     }[]) => {
         let point = 0;

@@ -1,66 +1,61 @@
-import React, { useState, ChangeEvent, FormEvent } from 'react';
+import React, { useState, ChangeEvent, FormEvent, useEffect } from 'react';
 import '../styles/globals.css';
 import '../styles/tailwind.css';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/router';
+import axios from 'axios';
+import Notification from '../components/Notification';
 
-const sampleQuestions: { question: string; choices: string[]; selectedAnswer: string; correctAnswer: string | string[]; type: string; isCorrect?: boolean }[] = [
-    {
-        question: "What is the capital of France?",
-        choices: ["A) Paris", "B) London", "C) Berlin", "D) Madrid"],
-        selectedAnswer: "",
-        correctAnswer: "A) Paris",
-        type: "checkbox",
-    },
-    {
-        question: "Who wrote 'Romeo and Juliet'?",
-        choices: ["A) Charles Dickens", "B) Jane Austen", "C) William Shakespeare", "D) F. Scott Fitzgerald"],
-        selectedAnswer: "",
-        correctAnswer: "C) William Shakespeare",
-        type: "checkbox",
-    },
-    {
-        question: "What is the chemical symbol for gold?",
-        choices: ["A) Ag", "B) Fe", "C) Au", "D) Hg"],
-        selectedAnswer: "",
-        correctAnswer: "C) Au",
-        type: "radio",
-    },
-    {
-        question: "What is the largest planet in our solar system?",
-        choices: ["A) Earth", "B) Mars", "C) Jupiter", "D) Saturn"],
-        selectedAnswer: "",
-        correctAnswer: "C) Jupiter",
-        type: "radio",
-    },
-    {
-        question: "How many continents are there on Earth?",
-        choices: ["A) 5", "B) 6", "C) 7", "D) 8"],
-        selectedAnswer: "",
-        correctAnswer: "C) 7",
-        type: "radio",
-    },
-];
+interface ExamQuestion {
+    text: string;
+    type: 'radio' | 'checkbox';
+    choices: string[];
+    correctAnswer: string | string[];
+    selectedAnswer: string | string[]
+    isCorrect?: boolean;
+}
 
-function ExamifyPage() {
+interface Exam {
+    title: string;
+    questions: ExamQuestion[];
+}
 
+const ExamifyPage: React.FC = () => {
+    const router = useRouter();
+    const { id } = router.query;
 
-    // const [formData, setFormData] = useState<Record<string, string>>({});
     const [selectedCheckboxes, setSelectedCheckboxes] = useState<Record<string, boolean>>({});
     const [selectedRadio, setSelectedRadio] = useState<Record<string, string>>({});
-    // const [showAdditionalFields, setShowAdditionalFields] = useState(false);
     const [isSubmitted, setIsSubmitted] = useState(false);
     const [points, setPoints] = useState(0);
+    const [loading, setLoading] = useState(true);
+    const [notifications, setNotifications] = useState<{ message: string; key: string }[]>([]);
+    const [exam, setExam] = useState<Exam>();
+    const [result, setResult] = useState<Exam>();
 
-    // const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    //     const { name, value } = e.target;
-    //     setFormData({ ...formData, [name]: value });
-    // };
+    useEffect(() => {
+        if(id) {
+            axios
+            .get("https://652a0b4155b137ddc83f42e5.mockapi.io/api/v1/Exam/" + id)
+            .then((response) => {
+                setExam(response.data);
+                setResult(response.data);
+                setLoading(false);
+            })
+            .catch(() => {
+                showNotification('Error featching the exam!');
+                setLoading(false);
+            });
+        }
+    }, [id]);
 
     const handleRadioChange = (index: number, answer: string) => (e: ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         setSelectedRadio({ ...selectedRadio, [name]: value });
-        sampleQuestions[index].selectedAnswer = answer;
+        if(result) {
+            result.questions[index].selectedAnswer = answer;
+        }
     };
 
     const handleCheckboxChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -75,31 +70,32 @@ function ExamifyPage() {
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
         // Combine formData, selectedRadio, and selectedCheckboxes to include all user input
-        let data = postResultToBackend(sampleQuestions);
+        let data = postResultToBackend(result?.questions);
         setPoints(data.point);
-        sampleQuestions.forEach((q, i) => {
-            console.log(`${data.detail[i]} ${i}`)
+        result?.questions.forEach((q, i) => {
             q.isCorrect = data.detail[i];
         })
         setIsSubmitted(true); // Set the isSubmitted state to true after successful submission.
     };
 
     // Fake post
-    const postResultToBackend = (questions: {
-        question: string;
-        choices: string[];
-        selectedAnswer: string;
-        correctAnswer: string | string [];
-        type: string;
-    }[]) => {
+    const postResultToBackend = (questions: ExamQuestion[] | undefined) => {
         let point = 0;
         const detail: boolean[] = [];
-        questions.forEach(q => {
+        questions?.forEach(q => {
             q.correctAnswer == q.selectedAnswer && point++;
             detail.push(q.correctAnswer == q.selectedAnswer);
         })
         return { point, detail };
     }
+
+    const showNotification = (message: string) => {
+        const newNotification = {
+            message,
+            key: Date.now().toString(), // Use a timestamp as the key to ensure uniqueness
+        };
+        setNotifications([...notifications, newNotification]);
+    };
 
     return (
         <div className="container mx-auto p-4 px-[25%] bg-slate-300 min-h-screen">
@@ -129,66 +125,77 @@ function ExamifyPage() {
                     </a>
                 </div>
             </div>
-            <form onSubmit={handleSubmit} className="space-y-8 p-4">
-                {sampleQuestions.map((question, index) => (
-                    <div key={index}>
-                        {question.type === "checkbox" && (
-                            <div>
-                                <label className="block font-medium text-lg text-gray-700 tracking-wider">{index + 1}. {question.question}:</label>
-                                <div className="">
+            {loading ? (
+                <p>Loading...</p>
+            ) : (
+                <form onSubmit={handleSubmit} className="space-y-8 p-4">
+                    {exam?.questions.map((question, index) => (
+                        <div key={index}>
+                            {question.type === "checkbox" && (
+                                <div>
+                                    <label className="block font-medium text-lg text-gray-700 tracking-wider">{index + 1}. {question.text}</label>
+                                    <div className="">
+                                        {question.choices.map((choise, i) => (
+                                            <div key={i} className="flex items-center p-2">
+                                                <input
+                                                    type="checkbox"
+                                                    id={`checkboxOption${i + 1}`}
+                                                    name={`cbOption${index + 1}`}
+                                                    checked={selectedCheckboxes[`checkboxOption${i + 1}`]}
+                                                    onChange={handleCheckboxChange}
+                                                />
+                                                <label htmlFor={`checkboxOption${i + 1}`} className="ml-2 tracking-wider">
+                                                    {choise}
+                                                </label>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                            {question.type === "radio" && (
+                                <div>
+                                    <label className={`block font-medium text-lg text-gray-700 tracking-wider ${question.isCorrect == true && 'text-green-600'} ${question.isCorrect == false && 'text-red-600'}`}>{index + 1}. {question.text}</label>
                                     {question.choices.map((choise, i) => (
-                                        <div key={index} className="flex items-center p-2">
-                                            <input
-                                                type="checkbox"
-                                                id={`checkboxOption${i + 1}`}
-                                                name={`cbOption${index + 1}`}
-                                                checked={selectedCheckboxes[`checkboxOption${i + 1}`]}
-                                                onChange={handleCheckboxChange}
-                                            />
-                                            <label htmlFor={`checkboxOption${i + 1}`} className="ml-2 tracking-wider">
-                                                {choise}
-                                            </label>
+                                        <div key={i} className={`p-2`}>
+                                            <div className="flex items-center">
+                                                <input
+                                                    type="radio"
+                                                    id={`option${i + 1}`}
+                                                    name={`radioAnswer${index + 1}`}
+                                                    value={choise}
+                                                    checked={selectedRadio[`radioAnswer${index + 1}`] === choise}
+                                                    onChange={handleRadioChange(index, choise)}
+                                                />
+                                                <label htmlFor={`option${i + 1}`} className="ml-2 tracking-wider">
+                                                    {choise}
+                                                </label>
+                                            </div>
                                         </div>
                                     ))}
                                 </div>
-                            </div>
-                        )}
-                        {question.type === "radio" && (
-                            <div>
-                                <label className={`block font-medium text-lg text-gray-700 tracking-wider ${question.isCorrect == true && 'text-green-600'} ${question.isCorrect == false && 'text-red-600'}`}>{index + 1}. {question.question}:</label>
-                                {question.choices.map((choise, i) => (
-                                    <div key={index} className={`p-2`}>
-                                        <div className="flex items-center">
-                                            <input
-                                                type="radio"
-                                                id={`option${i + 1}`}
-                                                name={`radioAnswer${index + 1}`}
-                                                value={choise}
-                                                checked={selectedRadio[`radioAnswer${index + 1}`] === choise}
-                                                onChange={handleRadioChange(index, choise)}
-                                            />
-                                            <label htmlFor={`option${i + 1}`} className="ml-2 tracking-wider">
-                                                {choise}
-                                            </label>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
+                            )}
+                        </div>
+                    ))}
+                    {isSubmitted && (
+                        <div className="bg-green-100 p-4 text-green-700 rounded mt-4">
+                            Submitted successfully! Your point is: {`${points}/${exam?.questions.length}`}
+                        </div>
+                    )}
+                    <div>
+                        <button type="submit" className="bg-blue-500 text-white p-3 rounded">
+                            Submit
+                        </button>
+                    </div>
+
+                </form>
+            )}
+            <div className='fixed top-0 right-0'>
+                {notifications.map((notification, i) => (
+                    <div className='p-1' key={i}>
+                        <Notification nKey={notification.key} message={notification.message} />
                     </div>
                 ))}
-                {isSubmitted && (
-                    <div className="bg-green-100 p-4 text-green-700 rounded mt-4">
-                        Submitted successfully! Your point is: {`${points}/${sampleQuestions.length}`}
-                    </div>
-                )}
-                <div>
-                    <button type="submit" className="bg-blue-500 text-white p-3 rounded">
-                        Submit
-                    </button>
-                </div>
-
-            </form>
+            </div>
         </div>
     );
 }

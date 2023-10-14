@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import axios from 'axios';
 import Notification from '../components/Notification';
+import ConfirmationPopup from '../components/PopUp';
 
 interface ExamQuestion {
     text: string;
@@ -24,6 +25,7 @@ const CreateExamPage: React.FC = () => {
         questions: [],
     });
     const [notifications, setNotifications] = useState<{ message: string; key: string }[]>([]);
+    const [showPopup, setShowPopup] = useState(false);
 
     const addQuestion = (type: 'radio' | 'checkbox') => {
         const newQuestion: ExamQuestion = {
@@ -76,13 +78,21 @@ const CreateExamPage: React.FC = () => {
         });
     };
 
-
-    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
-        console.log(exam);
+    const handleSubmit = async () => {
+        const formatedQuestions = exam.questions.map(question => {
+            if (!question.correctAnswer && question.choices.length) {
+                question.correctAnswer = question.choices[0]
+            }
+            return question;
+        })
 
         try {
-            const response = await axios.post("https://652a0b4155b137ddc83f42e5.mockapi.io/api/v1/Exam", exam);
+            const response =
+                await axios.post("https://652a0b4155b137ddc83f42e5.mockapi.io/api/v1/Exam",
+                    {
+                        title: exam.title,
+                        questions: formatedQuestions
+                    });
 
             if (response.status === 201) {
                 showNotification('Exam created successfully!');
@@ -90,6 +100,7 @@ const CreateExamPage: React.FC = () => {
         } catch (error) {
             showNotification('Error creating the exam!');
         }
+        setShowPopup(false);
     };
 
     const showNotification = (message: string) => {
@@ -290,9 +301,19 @@ const CreateExamPage: React.FC = () => {
                         Checkbox Question
                     </button>
                 </div>
-                <button type="submit" className="bg-green-500 text-white p-2 px-4 rounded hover:bg-green-600">
+                <button
+                    type="button" className="bg-green-500 text-white p-2 px-4 rounded hover:bg-green-600"
+                    onClick={() => { setShowPopup(true) }}
+                >
                     Create Exam
                 </button>
+                {showPopup && (
+                    <ConfirmationPopup
+                        message={"Would you like to create this Examify. This action is important. Please double check if you are not sure."}
+                        onConfirm={handleSubmit}
+                        onCancel={() => { setShowPopup(false) }}
+                    />
+                )}
             </form>
         </div>
     );

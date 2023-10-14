@@ -43,8 +43,8 @@ const ExamifyPage: React.FC = () => {
                 setResult(response.data);
                 setLoading(false);
             })
-            .catch(() => {
-                showNotification('Error featching the exam!');
+            .catch((e) => {
+                showNotification('Error featching the exam');
                 setLoading(false);
             });
         }
